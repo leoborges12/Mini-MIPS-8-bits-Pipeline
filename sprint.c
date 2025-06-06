@@ -155,6 +155,9 @@ void memory_access(estado_processador *estado) {
     estado->mem_wb.aluResult = estado->ex_mem.aluResult;
     estado->mem_wb.writeReg = estado->ex_mem.writeReg;
     estado->mem_wb.opcode = estado->ex_mem.opcode;
+
+//beq aqui 
+
 }
 
 void write_back(estado_processador *estado) {
@@ -190,11 +193,11 @@ void ciclo_paralelo(estado_processador *estado) {
 
 void print_pipeline(estado_processador *estado) {
     printf("\n======= ESTADO DO PIPELINE =======\n");
-    printf("\n--- IF/ID ---\n");
+    printf("\n--- IF/ID Estágio 1 --- \n");
     printf("Instrucao: %s\n", estado->if_id.instrucao.binario);
     printf("PC + 1: %d\n", estado->if_id.PC_plus1);
 
-    printf("\n--- ID/EX ---\n");
+    printf("\n--- ID/EX Estágio 2 ---\n");
     printf("Opcode: %d | rs: %d | rt: %d | rd: %d | funct: %d\n",
            estado->id_ex.opcode, estado->id_ex.rs, estado->id_ex.rt,
            estado->id_ex.rd, estado->id_ex.funct);
@@ -202,12 +205,12 @@ void print_pipeline(estado_processador *estado) {
            estado->id_ex.regA, estado->id_ex.regB, estado->id_ex.imediato,
            estado->id_ex.PC_plus1);
 
-    printf("\n--- EX/MEM ---\n");
+    printf("\n--- EX/MEM Estágio 3 ---\n");
     printf("Opcode: %d | aluResult: %d | regB: %d | writeReg: %d\n",
            estado->ex_mem.opcode, estado->ex_mem.aluResult,
            estado->ex_mem.regB, estado->ex_mem.writeReg);
 
-    printf("\n--- MEM/WB ---\n");
+    printf("\n--- MEM/WB Estágio 4 ---\n");
     printf("Opcode: %d | aluResult: %d | memData: %d | writeReg: %d\n",
            estado->mem_wb.opcode, estado->mem_wb.aluResult,
            estado->mem_wb.memData, estado->mem_wb.writeReg);
@@ -360,8 +363,8 @@ void load_data(Memory *memory, const char *filename) {
 
 void print_dados(const Memory *memory) {
     printf("\nMemória de Dados:\n");
-    for (int i = 0; i < memory->num_dados; i++) {
-        printf("Dado %d: Binário: %s | Decimal: %d\n", i, memory->Dados[i].bin, memory->Dados[i].dado);
+    for (int i = 0; i < MEM_SIZE; i++) {
+        printf("Endereço: %d: Binário: %s | Decimal: %d\n", i, memory->Dados[i].bin, memory->Dados[i].dado);
     }
 }
 
@@ -389,7 +392,7 @@ int main() {
     int opcao;
     char filename[100];
 
-    // Inicialização básica
+    
     estado.pc.valor = 0;
     estado.halt_flag = 0;
     estado.passos_executados = 0;
@@ -456,13 +459,13 @@ int main() {
             case 6: // Mostrar registradores
                 printf("\n--- Registradores ---\n");
                 for (int i = 0; i < 8; i++) {
-                    printf("$%d = %d (0x%04x)\n", i, estado.registradores[i], estado.registradores[i]);
+                    printf("$%d = %d\n", i, estado.registradores[i]);
                 }
                 break;
 
             case 7: // Mostrar memória completa
                 printf("\n--- Memória de Instruções ---\n");
-                for (int i = 0; i < estado.memory.num_instrucoes; i++) {
+                for (int i = 0; i < MEM_SIZE; i++) {
                     printf("[%03d] ", i);
                     print_instrucao(&estado.memory.instr_decod[i]);
                 }
