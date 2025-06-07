@@ -157,7 +157,6 @@ void memory_access(estado_processador *estado) {
     estado->mem_wb.opcode = estado->ex_mem.opcode;
 
 //beq aqui 
-
 }
 
 void write_back(estado_processador *estado) {
@@ -454,6 +453,18 @@ int main() {
                 printf("Instruções executadas: %d\n", estado.passos_executados);
                 printf("Status HALT: %s\n", estado.halt_flag ? "Ativo" : "Inativo");
                 print_pipeline(&estado);
+                printf("\n");
+                printf("\n--- Memória de Instruções ---\n");
+                for (int i = 0; i < MEM_SIZE; i++) {
+                    printf("[%03d] ", i);
+                    print_instrucao(&estado.memory.instr_decod[i]);
+                }
+                print_dados(&estado.memory);
+                printf("\n");
+                printf("\n--- Registradores ---\n");
+                for (int i = 0; i < 8; i++) {
+                    printf("$%d = %d\n", i, estado.registradores[i]);
+                }
                 break;
 
             case 6: // Mostrar registradores
