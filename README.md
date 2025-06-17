@@ -47,9 +47,7 @@ Este projeto implementa um simulador da arquitetura **Mini MIPS de 8 bits** com 
 
 ## 🔧 Como Compilar
 
-```bash
 gcc main.c pipeline.c instrucoes.c memoria.c registradores.c utils.c -o mips_sim
-```end
 
 ## 📄 Licença
 Este projeto está licenciado sob a MIT License.
