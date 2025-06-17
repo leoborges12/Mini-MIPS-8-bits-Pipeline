@@ -318,14 +318,6 @@ void fetch(Memory *memory, IF_ID *if_id, int *pc, int *pc_prev) {
 
 void decode(IF_ID *if_id, ID_EX *id_ex, int *registradores) {
     struct inst ri = if_id->instrucao;
-    
-        // Verifica se a instrução anterior está escrevendo em um registrador que esta instrução lê
-    if ((ex_mem->regWrite && (ex_mem->writeReg == if_id->instrucao.rs || ex_mem->writeReg == if_id->instrucao.rt)) ||
-        (mem_wb->regWrite && (mem_wb->writeReg == if_id->instrucao.rs || mem_wb->writeReg == if_id->instrucao.rt))) {
-        *stall_pipeline = 1;  // Força um stall
-        memset(id_ex, 0, sizeof(ID_EX));  // Transforma em NOP
-        return;
-    }
 
     // Se for NOP, propaga NOP e zera sinais de controle
     if (ri.tipo == tipo_INVALIDO || ri.opcode == -1) {
