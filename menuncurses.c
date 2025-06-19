@@ -192,16 +192,16 @@ int main() {
                     break;
              }
 
-    ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb,
-                   registradores, memory.Dados, &memory,
-                   &pc, &pc_prev, &halt_flag, &passos_executados,
-                   &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
+                    ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb,
+                    registradores, memory.Dados, &memory,
+                    &pc, &pc_prev, &halt_flag, &passos_executados,
+                    &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
 
-    tela_estado_processador_ncurses(
-        pc, if_id.PC_plus1, stall_pipeline, branch_taken, branch_target,
-        registradores, &if_id, &id_ex, &ex_mem, &mem_wb
-    );
-    break;
+                    tela_estado_processador_ncurses(
+                    pc, if_id.PC_plus1, stall_pipeline, branch_taken, branch_target,
+                    registradores, &if_id, &id_ex, &ex_mem, &mem_wb
+                    );
+                    break;
 
 
             case 3:
