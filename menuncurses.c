@@ -139,6 +139,10 @@ void empilhar(PilhaEstados *pilha, EstadoProcessador estado);
 EstadoProcessador desempilhar(PilhaEstados *pilha);
 int step_back(IF_ID *if_id, ID_EX *id_ex, EX_MEM *ex_mem, MEM_WB *mem_wb, int *registradores, int *pc, int *pc_prev, int *passos_executados, int *branch_taken, int *branch_target, int *stall_pipeline, PilhaEstados *pilha_estados);
 const char* instrucao_para_assembly(struct inst *instr);
+void tela_registradores_ncurses(int *registradores);
+void tela_memoria_instrucoes_ncurses(const Memory *memory);
+void tela_memoria_dados_ncurses(const Memory *memory);
+
 
 int main() {
     int registradores[8] = {0};
@@ -178,13 +182,27 @@ int main() {
 
             case 2:
                 if (memory.num_instrucoes == 0) {
-                    printf("Erro: Nenhum programa carregado.\n");
+                    initscr();
+                    clear();
+                    mvprintw(1, 2, "Erro: Nenhum programa carregado.");
+                    mvprintw(3, 2, "Pressione qualquer tecla para voltar ao menu...");
+                    refresh();
+                    getch();
+                    endwin();
                     break;
-                }
-                ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb, registradores, memory.Dados, &memory, &pc, &pc_prev, &halt_flag, &passos_executados, &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
-                printf("\n");
-                print_pipeline(&if_id, &id_ex, &ex_mem, &mem_wb);
-                break;
+             }
+
+    ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb,
+                   registradores, memory.Dados, &memory,
+                   &pc, &pc_prev, &halt_flag, &passos_executados,
+                   &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
+
+    tela_estado_processador_ncurses(
+        pc, if_id.PC_plus1, stall_pipeline, branch_taken, branch_target,
+        registradores, &if_id, &id_ex, &ex_mem, &mem_wb
+    );
+    break;
+
 
             case 3:
                 if (step_back(&if_id, &id_ex, &ex_mem, &mem_wb, registradores, &pc, &pc_prev, &passos_executados, &branch_taken, &branch_target, &stall_pipeline, &pilha_estados)){
@@ -211,18 +229,17 @@ int main() {
 
 
             case 6:
-                printf("\n--- Registradores ---\n");
-                for (int i = 0; i < 8; i++) {
-                    printf("$%d = %d\n", i, registradores[i]);
-                }
+                tela_registradores_ncurses(registradores);
                 break;
+
 
             case 7:
-                print_memoria_instrucoes(&memory);
+                tela_memoria_instrucoes_ncurses(&memory);
                 break;
 
+
             case 8:
-                print_dados(&memory);
+                tela_memoria_dados_ncurses(&memory);
                 break;
 
             case 9:
@@ -976,20 +993,142 @@ void tela_estado_processador_ncurses(
         mvprintw(6 + i, 4, "$%d = %d", i, registradores[i]);
     }
 
-    int y = 15;
-    mvprintw(y++, 2, "=== Pipeline ===");
+    print_pipeline_ncurses(15, if_id, id_ex, ex_mem, mem_wb);
 
-    mvprintw(y++, 4, "[IF/ID]   Instrução: %s", instrucao_para_assembly(&if_id->instrucao));
-    mvprintw(y++, 4, "[ID/EX]   Instrução: %s", instrucao_para_assembly(&id_ex->instrucao));
-    mvprintw(y++, 4, "          RD1=%d RD2=%d IMM=%d", id_ex->RD1, id_ex->RD2, id_ex->imm);
-    mvprintw(y++, 4, "[EX/MEM]  Instrução: %s", instrucao_para_assembly(&ex_mem->instrucao));
-    mvprintw(y++, 4, "          ALU=%d WR=%d WD=%d", ex_mem->ulaS, ex_mem->writeReg, ex_mem->writeData);
-    mvprintw(y++, 4, "[MEM/WB]  Instrução: %s", instrucao_para_assembly(&mem_wb->instrucao));
-    mvprintw(y++, 4, "          ALU=%d MEM=%d WR=%d", mem_wb->ulaS, mem_wb->readData, mem_wb->writeReg);
-
-    mvprintw(y + 2, 2, "Pressione qualquer tecla para voltar ao menu...");
+    mvprintw(35, 2, "Pressione qualquer tecla para voltar ao menu...");
     refresh();
     getch();
     endwin();
 }
 
+
+void tela_registradores_ncurses(int *registradores) {
+    initscr();
+    clear();
+    curs_set(0);
+
+    int linhas, colunas;
+    getmaxyx(stdscr, linhas, colunas);
+
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(1, colunas/2 - 10, "--- REGISTRADORES ---");
+    attroff(A_BOLD | A_UNDERLINE);
+
+    for (int i = 0; i < 8; i++) {
+        mvprintw(3 + i, colunas/2 - 8, "$%d = %d", i, registradores[i]);
+    }
+
+    mvprintw(13, colunas/2 - 18, "Pressione qualquer tecla para voltar ao menu...");
+    refresh();
+    getch();
+    endwin();
+}
+
+void print_pipeline_ncurses(
+    int start_y,
+    IF_ID *if_id,
+    ID_EX *id_ex,
+    EX_MEM *ex_mem,
+    MEM_WB *mem_wb
+) {
+    int y = start_y;
+
+    mvprintw(y++, 2, "======= ESTADO DO PIPELINE =======");
+
+    // IF/ID
+    mvprintw(y++, 2, "--- IF/ID ---");
+    mvprintw(y++, 4, "Instrucao: %s", if_id->instrucao.binario);
+    mvprintw(y++, 4, "PC + 1: %d", if_id->PC_plus1);
+
+    // ID/EX
+    mvprintw(y++, 2, "--- ID/EX ---");
+    mvprintw(y++, 4, "rs: %d | rt: %d | rd: %d", id_ex->rs, id_ex->rt, id_ex->rd);
+    mvprintw(y++, 4, "RD1: %d | RD2: %d | imm: %d | PC+1: %d | addr: %d",
+             id_ex->RD1, id_ex->RD2, id_ex->imm, id_ex->PCInc, id_ex->addr);
+    mvprintw(y++, 4, "Sinais: RegDst=%d | ULAOp=%d | ULA-Fonte=%d | MemToReg=%d",
+             id_ex->regDst, id_ex->ulaOp, id_ex->ulaF, id_ex->memToReg);
+    mvprintw(y++, 4, "         RegWrite=%d | MemWrite=%d | Branch=%d | Jump=%d",
+             id_ex->regWrite, id_ex->memWrite, id_ex->branch, id_ex->jump);
+
+    // EX/MEM
+    mvprintw(y++, 2, "--- EX/MEM ---");
+    mvprintw(y++, 4, "aluResult: %d | writeData: %d | writeReg: %d",
+             ex_mem->ulaS, ex_mem->writeData, ex_mem->writeReg);
+    mvprintw(y++, 4, "Sinais: MemWrite=%d | RegWrite=%d | MemToReg=%d | Branch=%d | Jump=%d",
+             ex_mem->memWrite, ex_mem->regWrite, ex_mem->memToReg, ex_mem->branch, ex_mem->jump);
+
+    // MEM/WB
+    mvprintw(y++, 2, "--- MEM/WB ---");
+    mvprintw(y++, 4, "aluResult: %d | memData: %d | writeReg: %d",
+             mem_wb->ulaS, mem_wb->readData, mem_wb->writeReg);
+    mvprintw(y++, 4, "Sinais: RegWrite=%d | MemToReg=%d",
+             mem_wb->regWrite, mem_wb->memToReg);
+
+    mvprintw(y++, 2, "==================================");
+}
+
+void tela_memoria_instrucoes_ncurses(const Memory *memory) {
+    initscr();
+    clear();
+    curs_set(0);
+    noecho();
+
+    int linhas, colunas;
+    getmaxyx(stdscr, linhas, colunas);
+
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(1, colunas / 2 - 15, "--- MEMÓRIA DE INSTRUÇÕES ---");
+    attroff(A_BOLD | A_UNDERLINE);
+
+    int y = 3;
+    for (int i = 0; i < memory->num_instrucoes && y < linhas - 2; i++) {
+        mvprintw(y++, 2, "[%03d] %s | opcode: %d | rs: %d | rt: %d | rd: %d | imm: %d | funct: %d | addr: %d",
+                 i,
+                 memory->instr_decod[i].binario,
+                 memory->instr_decod[i].opcode,
+                 memory->instr_decod[i].rs,
+                 memory->instr_decod[i].rt,
+                 memory->instr_decod[i].rd,
+                 memory->instr_decod[i].imm,
+                 memory->instr_decod[i].funct,
+                 memory->instr_decod[i].addr);
+    }
+
+    if (memory->num_instrucoes > linhas - 5) {
+        mvprintw(y++, 2, "... Exibindo apenas as primeiras %d linhas ...", linhas - 5);
+    }
+
+    mvprintw(linhas - 2, colunas / 2 - 20, "Pressione qualquer tecla para voltar ao menu...");
+    refresh();
+    getch();
+    endwin();
+}
+
+void tela_memoria_dados_ncurses(const Memory *memory) {
+    initscr();
+    clear();
+    curs_set(0);
+    noecho();
+
+    int linhas, colunas;
+    getmaxyx(stdscr, linhas, colunas);
+
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(1, colunas / 2 - 13, "--- MEMÓRIA DE DADOS ---");
+    attroff(A_BOLD | A_UNDERLINE);
+
+    int y = 3;
+    for (int i = 0; i < memory->num_dados && y < linhas - 2; i++) {
+        mvprintw(y++, 2, "Endereço: %03d | Binário: %s | Decimal: %d",
+                 i, memory->Dados[i].bin, memory->Dados[i].dado);
+    }
+
+    if (memory->num_dados > linhas - 5) {
+        mvprintw(y++, 2, "... Exibindo apenas as primeiras %d linhas ...", linhas - 5);
+    }
+
+    mvprintw(linhas - 2, colunas / 2 - 20, "Pressione qualquer tecla para voltar ao menu...");
+    refresh();
+    getch();
+    endwin();
+}
