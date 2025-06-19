@@ -141,6 +141,7 @@ int step_back(IF_ID *if_id, ID_EX *id_ex, EX_MEM *ex_mem, MEM_WB *mem_wb, int *r
 const char* instrucao_para_assembly(struct inst *instr);
 void tela_registradores_ncurses(int *registradores);
 void tela_memoria_instrucoes_ncurses(const Memory *memory);
+void tela_memoria_dados_ncurses(const Memory *memory);
 
 
 int main() {
@@ -181,13 +182,27 @@ int main() {
 
             case 2:
                 if (memory.num_instrucoes == 0) {
-                    printf("Erro: Nenhum programa carregado.\n");
+                    initscr();
+                    clear();
+                    mvprintw(1, 2, "Erro: Nenhum programa carregado.");
+                    mvprintw(3, 2, "Pressione qualquer tecla para voltar ao menu...");
+                    refresh();
+                    getch();
+                    endwin();
                     break;
-                }
-                ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb, registradores, memory.Dados, &memory, &pc, &pc_prev, &halt_flag, &passos_executados, &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
-                printf("\n");
-                print_pipeline(&if_id, &id_ex, &ex_mem, &mem_wb);
-                break;
+             }
+
+    ciclo_paralelo(&if_id, &id_ex, &ex_mem, &mem_wb,
+                   registradores, memory.Dados, &memory,
+                   &pc, &pc_prev, &halt_flag, &passos_executados,
+                   &branch_taken, &branch_target, &stall_pipeline, &pilha_estados);
+
+    tela_estado_processador_ncurses(
+        pc, if_id.PC_plus1, stall_pipeline, branch_taken, branch_target,
+        registradores, &if_id, &id_ex, &ex_mem, &mem_wb
+    );
+    break;
+
 
             case 3:
                 if (step_back(&if_id, &id_ex, &ex_mem, &mem_wb, registradores, &pc, &pc_prev, &passos_executados, &branch_taken, &branch_target, &stall_pipeline, &pilha_estados)){
@@ -224,7 +239,7 @@ int main() {
 
 
             case 8:
-                print_dados(&memory);
+                tela_memoria_dados_ncurses(&memory);
                 break;
 
             case 9:
@@ -1080,6 +1095,35 @@ void tela_memoria_instrucoes_ncurses(const Memory *memory) {
     }
 
     if (memory->num_instrucoes > linhas - 5) {
+        mvprintw(y++, 2, "... Exibindo apenas as primeiras %d linhas ...", linhas - 5);
+    }
+
+    mvprintw(linhas - 2, colunas / 2 - 20, "Pressione qualquer tecla para voltar ao menu...");
+    refresh();
+    getch();
+    endwin();
+}
+
+void tela_memoria_dados_ncurses(const Memory *memory) {
+    initscr();
+    clear();
+    curs_set(0);
+    noecho();
+
+    int linhas, colunas;
+    getmaxyx(stdscr, linhas, colunas);
+
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(1, colunas / 2 - 13, "--- MEMÓRIA DE DADOS ---");
+    attroff(A_BOLD | A_UNDERLINE);
+
+    int y = 3;
+    for (int i = 0; i < memory->num_dados && y < linhas - 2; i++) {
+        mvprintw(y++, 2, "Endereço: %03d | Binário: %s | Decimal: %d",
+                 i, memory->Dados[i].bin, memory->Dados[i].dado);
+    }
+
+    if (memory->num_dados > linhas - 5) {
         mvprintw(y++, 2, "... Exibindo apenas as primeiras %d linhas ...", linhas - 5);
     }
 
