@@ -203,16 +203,12 @@ int main() {
                 break;
 
             case 5:
-                printf("\n--- Estado do Processador ---\n");
-                printf("PC: %d | PC+1: %d\n", pc, if_id.PC_plus1);
-                printf("Stall: %d | Branch tomado: %d | Destino: %d\n",
-                       stall_pipeline, branch_taken, branch_target);
-                printf("Registradores:\n");
-                for (int i = 0; i < 8; i++) {
-                    printf("$%d = %d\n", i, registradores[i]);
-                }
-                print_pipeline(&if_id, &id_ex, &ex_mem, &mem_wb);
+                tela_estado_processador_ncurses(
+                    pc, if_id.PC_plus1, stall_pipeline, branch_taken, branch_target,
+                    registradores,
+                    &if_id, &id_ex, &ex_mem, &mem_wb);
                 break;
+
 
             case 6:
                 printf("\n--- Registradores ---\n");
@@ -884,6 +880,14 @@ void print_instrucao(struct inst *instr) {
            instr->funct,
            instr->addr);
 }
+
+void tela_estado_processador_ncurses(
+    int pc, int pc_plus1, int stall, int branch_taken, int branch_target,
+    int *registradores,
+    IF_ID *if_id, ID_EX *id_ex, EX_MEM *ex_mem, MEM_WB *mem_wb
+);
+
+
 int menu_ncurses() {
     initscr();
     noecho();
@@ -948,3 +952,44 @@ int menu_ncurses() {
     endwin();
     return escolha;
 }
+
+void tela_estado_processador_ncurses(
+    int pc, int pc_plus1, int stall, int branch_taken, int branch_target,
+    int *registradores,
+    IF_ID *if_id, ID_EX *id_ex, EX_MEM *ex_mem, MEM_WB *mem_wb
+) {
+    initscr();
+    clear();
+    curs_set(0);
+
+    int linhas, colunas;
+    getmaxyx(stdscr, linhas, colunas);
+
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(1, colunas/2 - 12, "--- ESTADO DO PROCESSADOR ---");
+    attroff(A_BOLD | A_UNDERLINE);
+
+    mvprintw(3, 2, "PC: %d | PC+1: %d | Stall: %d | Branch? %d -> %d", pc, pc_plus1, stall, branch_taken, branch_target);
+
+    mvprintw(5, 2, "Registradores:");
+    for (int i = 0; i < 8; i++) {
+        mvprintw(6 + i, 4, "$%d = %d", i, registradores[i]);
+    }
+
+    int y = 15;
+    mvprintw(y++, 2, "=== Pipeline ===");
+
+    mvprintw(y++, 4, "[IF/ID]   Instrução: %s", instrucao_para_assembly(&if_id->instrucao));
+    mvprintw(y++, 4, "[ID/EX]   Instrução: %s", instrucao_para_assembly(&id_ex->instrucao));
+    mvprintw(y++, 4, "          RD1=%d RD2=%d IMM=%d", id_ex->RD1, id_ex->RD2, id_ex->imm);
+    mvprintw(y++, 4, "[EX/MEM]  Instrução: %s", instrucao_para_assembly(&ex_mem->instrucao));
+    mvprintw(y++, 4, "          ALU=%d WR=%d WD=%d", ex_mem->ulaS, ex_mem->writeReg, ex_mem->writeData);
+    mvprintw(y++, 4, "[MEM/WB]  Instrução: %s", instrucao_para_assembly(&mem_wb->instrucao));
+    mvprintw(y++, 4, "          ALU=%d MEM=%d WR=%d", mem_wb->ulaS, mem_wb->readData, mem_wb->writeReg);
+
+    mvprintw(y + 2, 2, "Pressione qualquer tecla para voltar ao menu...");
+    refresh();
+    getch();
+    endwin();
+}
+
