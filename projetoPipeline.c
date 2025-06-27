@@ -415,7 +415,7 @@ int decode(IF_ID *if_id_in, ID_EX *id_ex_out, int *registradores, ID_EX *prev_id
     id_ex_out->RD2 = registradores[current_inst.rt];
     
 
-	forwarding(&id_ex_out->RD1, current_inst.rs, prev_id_ex, prev_ex_mem, prev_mem_wb); 
+    forwarding(&id_ex_out->RD1, current_inst.rs, prev_id_ex, prev_ex_mem, prev_mem_wb); 
     forwarding(&id_ex_out->RD2, current_inst.rt, prev_id_ex, prev_ex_mem, prev_mem_wb);
 
     id_ex_out->PCInc = if_id_in->PC_plus1;
@@ -423,8 +423,6 @@ int decode(IF_ID *if_id_in, ID_EX *id_ex_out, int *registradores, ID_EX *prev_id
     id_ex_out->rt    = current_inst.rt;
     id_ex_out->rd    = current_inst.rd;
 
-    id_ex_out->RD1   = registradores[current_inst.rs];
-    id_ex_out->RD2   = registradores[current_inst.rt];
 
     if (current_inst.opcode == 8) {
         id_ex_out->imm = (current_inst.imm & 0x20) ? (current_inst.imm | 0xFFFFFFC0) : current_inst.imm;
